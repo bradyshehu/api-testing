@@ -69,6 +69,8 @@ const index = (req, res) => {
 
 const show = (req, res) => {
   const id = req.params.id;
+  console.log(id);
+  res.json("ciao");
 };
 
-module.exports = { index };
+module.exports = { index, show };
