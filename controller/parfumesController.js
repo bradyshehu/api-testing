@@ -46,14 +46,16 @@ const index = (req, res) => {
       products.*,      
       brands.name AS brand_name, 
       brands.logo AS brand_logo,
-      discounts.discount_amount AS discount_amount
+      discount_codes.amount AS discount_amount
     FROM products
 
     INNER JOIN brands 
     ON products.brand_id = brands.id
 
-    LEFT JOIN discounts
-    ON products.discount_id = discounts.id
+    LEFT JOIN discount_codes 
+    ON discount_codes.id = products.discount_id
+
+    ORDER BY products.id ASC
 
   `;
 
@@ -69,8 +71,51 @@ const index = (req, res) => {
 
 const show = (req, res) => {
   const id = req.params.id;
-  console.log(id);
-  res.json("ciao");
+  const productSql = `
+    SELECT 
+      products.*,      
+      brands.name AS brand_name, 
+      brands.logo AS brand_logo,
+      discount_codes.amount AS discount_amount
+
+    FROM products
+
+    INNER JOIN brands 
+    ON products.brand_id = brands.id
+
+    LEFT JOIN discount_codes 
+    ON discount_codes.id = products.discount_id
+    
+    WHERE products.id = ?
+  `;
+
+  const ingredientSql = `
+  SELECT ingredients.*, 
+  ingredients_products.percentage AS percentage
+  FROM ingredients
+
+  INNER JOIN ingredients_products 
+  ON ingredients_products.ingredient_id = ingredients.id
+
+  WHERE ingredients_products.product_id = ?
+  `;
+
+  connection.query(productSql, [id], (err, productResult) => {
+    if (err) return res.status(500).json({ error: err });
+    if (productResult.length === 0)
+      return res.status(500).json({ error: "Product not found" });
+    const product = productResult[0];
+    connection.query(ingredientSql, [id], (err, ingredientResult) => {
+      if (err) return res.status(500).json({ error: err });
+      product.ingredients = ingredientResult.map((i) => {
+        return {
+          name: i.name,
+          percentage: i.percentage,
+        };
+      });
+      res.json(product);
+    });
+  });
 };
 
 module.exports = { index, show };
