@@ -40,6 +40,8 @@ const connection = require("../data/db");
 //   });
 // };
 
+// LOGICA DELLA INDEX REST API, MOSTRA TUTTI I PRODOTTI NEL DB IN ORDINE DI ID, MOSTRANDO PER OGNI PRODOTTO A QUALE BRAND APPARTIENE, IL LOGO DEL BRAND E LO SCONTO APPLICATOGLI, SE C'É
+
 const index = (req, res) => {
   const sql = `
     SELECT 
@@ -65,9 +67,59 @@ const index = (req, res) => {
     res.json(results);
   });
 };
+const indexBestSellers = (req, res) => {
+  const sql = `
+    SELECT 
+      products.*,      
+      brands.name AS brand_name, 
+      brands.logo AS brand_logo,
+      discount_codes.amount AS discount_amount
+    FROM products
 
-// NOTE PER SUCCESSIVE REST API, SOPRATUTTO LA SHOW, TUTTO QUESTO NON SERVIRÁ, CON UNA INNER JOIN SI PUÓ RISALIRE ALLE INFO CORRELATE AL PRODOTTO,
-//  AVREMO ALTRI PARAMETRI A CUI APPOGGIARCI PER FARLO, NON SARÁ(CREDO) NECESSARIA TUTTA QUESTA LOGICA (CHE SICURAMENTE É OTTIMIZZABILE)
+    INNER JOIN brands 
+    ON products.brand_id = brands.id
+
+    LEFT JOIN discount_codes 
+    ON discount_codes.id = products.discount_id
+
+    WHERE products.best_seller = 1
+    ORDER BY products.id ASC
+  `;
+
+  connection.query(sql, (err, bestSellerResults) => {
+    if (err) return res.status(500).json({ error: err });
+
+    res.json(bestSellerResults);
+  });
+};
+
+const indexRecent = (req, res) => {
+  const sql = `
+    SELECT 
+      products.*,      
+      brands.name AS brand_name, 
+      brands.logo AS brand_logo,
+      discount_codes.amount AS discount_amount
+    FROM products
+
+    INNER JOIN brands 
+    ON products.brand_id = brands.id
+
+    LEFT JOIN discount_codes 
+    ON discount_codes.id = products.discount_id
+
+    ORDER BY products.created_at DESC
+
+  `;
+
+  connection.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: err });
+
+    res.json(results);
+  });
+};
+
+// LOGICA DELLA SHOW REST API IN CUI VIENE MOSTRATO IL PRODOTTO CON LE RELATIVE INFO (PRECEDENTI + INGREDIENTI)
 
 const show = (req, res) => {
   const id = req.params.id;
@@ -118,4 +170,4 @@ const show = (req, res) => {
   });
 };
 
-module.exports = { index, show };
+module.exports = { index, indexBestSellers, indexRecent, show };
